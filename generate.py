@@ -17,7 +17,25 @@ import numpy as np
 import torch
 import PIL.Image
 import dnnlib
+
+import matplotlib.pyplot as plt
+
 from torch_utils import distributed as dist
+
+
+def clear_color(x):
+    if torch.is_complex(x):
+        x = torch.abs(x)
+    x = x.detach().cpu().squeeze().numpy()
+    return normalize_np(np.transpose(x, (1, 2, 0)))
+
+
+def normalize_np(img):
+    """ Normalize img in arbitrary range to [0, 1] """
+    img -= np.min(img)
+    img /= np.max(img)
+    return img
+
 
 #----------------------------------------------------------------------------
 # Proposed EDM sampler (Algorithm 2).
@@ -48,6 +66,8 @@ def edm_sampler(
 
         # Euler step.
         denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
+        plt.imsave('edm_tmp.png', clear_color(denoised[0]))
+        exit()
         d_cur = (x_hat - denoised) / t_hat
         x_next = x_hat + (t_next - t_hat) * d_cur
 
