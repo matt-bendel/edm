@@ -111,6 +111,79 @@ def edm_sampler(
     exit()
     return x_next
 
+def edm_sampler_partial_denoise(
+    net, latents, class_labels=None, randn_like=torch.randn_like,
+    num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
+    S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
+):
+    num_steps = 25
+    # Adjust noise levels based on what's supported by the network.
+    sigma_min = max(sigma_min, net.sigma_min)
+    sigma_max = min(sigma_max, net.sigma_max)
+
+    # Time step discretization.
+    step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
+    t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
+    t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])]) # t_N = 0
+
+    device = latents.device
+
+    H = get_operator('inp_box', device)
+    fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
+
+    x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
+    x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
+    y = H.H(x_0)
+
+    # plt.imsave('tmp_x0.png', clear_color(x_0[0]))
+    # plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
+
+    # fire_out = fire_runner.run_fire(latents * t_steps[0].float(), y, 1 / (t_steps[0] ** 2), 1e-3)
+    # plt.imsave('tmp_fire_out.png', clear_color(fire_out[0]))
+
+
+    # Main sampling loop.
+    x_next = latents.to(torch.float64) * t_steps[0]
+    for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
+        x_cur = x_next
+
+        # Increase noise temporarily.
+        gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+        t_hat = net.round_sigma(t_cur + gamma * t_cur)
+        t_hat_next = net.round_sigma(t_next + gamma * t_next)
+        if i == 0:
+            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
+        else:
+            x_hat = x_cur
+
+        # Euler step.
+        # denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
+        # if i < num_steps / 4:
+        #     fire_runner.max_iters = 20
+        # elif i < num_steps / 2:
+        #     fire_runner.max_iters = 10
+        # elif i < num_steps * 3 / 4:
+        #     fire_runner.max_iters = 5
+        # else:
+        #     fire_runner.max_iters = 1
+
+        gamma_r = 1 / ((1 - t_next / t_hat) ** -1 * t_next * (2 * gamma + gamma ** 2) ** 1/2) ** 2
+        gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
+        D_out_plus_kappa_i_noise = fire_runner.run_fire(i, x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
+        # d_cur = (x_hat - denoised) / t_hat
+        # x_next = x_hat + (t_next - t_hat) * d_cur
+        x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * D_out_plus_kappa_i_noise
+
+        # Apply 2nd order correction.
+        # if i < num_steps - 1:
+        #     denoised = net(x_next, t_next, class_labels).to(torch.float64)
+        #     d_prime = (x_next - denoised) / t_next
+        #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
+
+    plt.imsave('edm_fire_out_partial_denoise.png', clear_color(x_next[0]))
+    exit()
+    return x_next
+
 #----------------------------------------------------------------------------
 # Generalized ablation sampler, representing the superset of all sampling
 # methods discussed in the paper.
