@@ -120,7 +120,7 @@ class FIRE:
 
         return mu_1_noised, gamma_r
 
-    def run_fire(self, idx, x_t, y, noise_sig, gamma_in, gamma_out):
+    def run_fire(self, return_mu_1, x_t, y, noise_sig, gamma_in, gamma_out):
         # 0. Initialize Values
         gamma_w = 1 / (noise_sig ** 2)
         gamma_r = gamma_in
@@ -153,7 +153,7 @@ class FIRE:
 
         self.cg_initialization = mu_1.clone() # CG warm start
 
-        return mu_1_noised
+        return mu_1_noised if not return_mu_1 else mu_1
 
 
 def extract_and_expand(array, time, target):
