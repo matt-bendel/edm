@@ -68,10 +68,9 @@ def edm_sampler(
     # plt.imsave('tmp_x0.png', clear_color(x_0[0]))
     # plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
 
-    fire_out = fire_runner.run_fire(latents * t_steps[0].float(), y, 1 / (t_steps[0] ** 2), 1e-3)
-    plt.imsave('tmp_fire_out.png', clear_color(fire_out[0]))
+    # fire_out = fire_runner.run_fire(latents * t_steps[0].float(), y, 1 / (t_steps[0] ** 2), 1e-3)
+    # plt.imsave('tmp_fire_out.png', clear_color(fire_out[0]))
 
-    exit()
 
     # Main sampling loop.
     x_next = latents.to(torch.float64) * t_steps[0]
@@ -84,20 +83,20 @@ def edm_sampler(
         x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
 
         # Euler step.
-        print(t_hat)
-        denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
-        plt.imsave(f'edm_tmp_{i}.png', clear_color(denoised[0]))
-        if i == 1:
-            exit()
+        # denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
+        fire_runner.max_iters = num_steps - i + 1
+        denoised = fire_runner.run_fire(latents * t_steps[0].float(), y, 1 / (t_steps[0] ** 2), 1e-3)
         d_cur = (x_hat - denoised) / t_hat
         x_next = x_hat + (t_next - t_hat) * d_cur
 
         # Apply 2nd order correction.
-        if i < num_steps - 1:
-            denoised = net(x_next, t_next, class_labels).to(torch.float64)
-            d_prime = (x_next - denoised) / t_next
-            x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
+        # if i < num_steps - 1:
+        #     denoised = net(x_next, t_next, class_labels).to(torch.float64)
+        #     d_prime = (x_next - denoised) / t_next
+        #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
+    plt.imsave('edm_fire_out.png', clear_color(x_next[0]))
+    exit()
     return x_next
 
 #----------------------------------------------------------------------------
