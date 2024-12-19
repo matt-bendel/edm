@@ -116,7 +116,7 @@ def edm_sampler_partial_denoise(
     num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
     S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
 ):
-    num_steps = 25
+    num_steps = 100
     # Adjust noise levels based on what's supported by the network.
     sigma_min = max(sigma_min, net.sigma_min)
     sigma_max = min(sigma_max, net.sigma_max)
