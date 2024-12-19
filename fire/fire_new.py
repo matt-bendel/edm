@@ -129,7 +129,7 @@ class FIRE:
 
         for i in range(self.max_iters):
             # 1. Denoising
-            mu_2, eta = self.denoising(mu_1_noised, gamma_in)
+            mu_2, eta = self.denoising(mu_1_noised, gamma_r)
             mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
 
             tr_approx = 0.
@@ -149,7 +149,7 @@ class FIRE:
             # plt.imsave(f'fire_mu_1_{idx}.png', clear_color(mu_1[0]))
 
             # 3. Re-Noising
-            mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_out if i == self.max_iters - 1 else gamma_r, gamma_w)
+            mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_r, gamma_w)
 
             self.cg_initialization = mu_1.clone() # CG warm start
 
