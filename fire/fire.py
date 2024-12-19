@@ -31,7 +31,7 @@ class FIRE:
         self.cg_initialization = torch.zeros_like(x_T)
 
         self.rho = 1.25
-        self.max_iters = 50
+        self.max_iters = 10
 
         with open(sqrt_in_var_to_out, 'rb') as f:
             self.sqrt_in_variance_to_out = torch.from_numpy(np.load(f)).to(x_T.device)
@@ -133,6 +133,7 @@ class FIRE:
             # 1. Denoising
             mu_2, eta = self.denoising(mu_1_noised, gamma_r)
             mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
+            plt.imsave(f'tmp_fire_mu_2_{i}.png', clear_color(fire_out[0]))
 
             tr_approx = 0.
             num_samps = 50
