@@ -65,6 +65,8 @@ def edm_sampler(
     x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
     y = H.H(x_0)
 
+    print(class_labels)
+
     # plt.imsave('tmp_x0.png', clear_color(x_0[0]))
     # plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
 

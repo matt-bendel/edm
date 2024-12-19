@@ -132,8 +132,8 @@ class FIRE:
             print(i)
             # 1. Denoising
             mu_2, eta = self.denoising(mu_1_noised, gamma_r)
-            mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
             plt.imsave(f'tmp_fire_mu_2_{i}.png', clear_color(mu_2[0]))
+            mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
 
             tr_approx = 0.
             num_samps = 50
