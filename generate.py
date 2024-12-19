@@ -85,7 +85,7 @@ def edm_sampler(
         # Euler step.
         # denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
         fire_runner.max_iters = num_steps - i + 1
-        denoised = fire_runner.run_fire(latents, y, 1 / (t_steps[0] ** 2), 1e-3)
+        denoised = fire_runner.run_fire(x_hat, y, 1 / (t_hat ** 2), 1e-3)
         plt.imsave(f'edm_fire_x0_{i}.png', clear_color(x_next[0]))
         d_cur = (x_hat - denoised) / t_hat
         x_next = x_hat + (t_next - t_hat) * d_cur
