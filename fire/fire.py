@@ -125,7 +125,7 @@ class FIRE:
         gamma_r = torch.tensor([t_alpha_bar / (1 - t_alpha_bar)]).unsqueeze(0).repeat(x_t.shape[0], 1).to(
             x_t.device)
         gamma_w = 1 / (noise_sig ** 2)
-        mu_1 = x_t / torch.sqrt(t_alpha_bar)
+        mu_1 = x_t
         mu_1_noised = mu_1.clone()
 
         for i in range(self.max_iters):
