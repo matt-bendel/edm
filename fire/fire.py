@@ -93,7 +93,7 @@ class FIRE:
         true_noise_sig = self.model.round_sigma(1 / gamma_2)
         mu_2 = self.model(mu_1, true_noise_sig, None).to(torch.float64)
 
-        eta_2 = 1 / (1e-3 * (true_noise_sig ** 2)[0].unsqueeze(0).sqrt().repeat(mu_2.shape[0], 1)).float()
+        eta_2 = 1 / (1e-3 * (true_noise_sig ** 2)[0].unsqueeze(0).sqrt().repeat(mu_2.shape[0], 1))
 
         return mu_2, eta_2
 
