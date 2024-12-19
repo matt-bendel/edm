@@ -151,14 +151,18 @@ def edm_sampler_partial_denoise(
         gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
         gamma_next = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_next <= S_max else 0
         t_hat = net.round_sigma(t_cur + gamma * t_cur)
+        t_hat_next = net.round_sigma(t_next + gamma * t_next)
+
         if i == 0:
             x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
         else:
             x_hat = x_cur
 
         # Euler step.
-        gamma_r = 1 / (t_next * ((2 * gamma_next + gamma_next ** 2) ** 1/2) / (1 - t_next / t_hat)) ** 2
+        kappa_i = (1 - t_next / t_hat) ** -1 * (t_hat_next ** 2 - t_next ** 2).sqrt()
+        gamma_r = 1 / (kappa_i ** 2)
         gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
+
         D_out_plus_kappa_i_noise = fire_runner.run_fire(gamma == 0, x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
         print(f'desired var: {1/gamma_r[0,0].cpu().numpy()}; actual var: {torch.linalg.norm(D_out_plus_kappa_i_noise - x_0).cpu().numpy() ** 2}')
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * D_out_plus_kappa_i_noise
