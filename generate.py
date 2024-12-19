@@ -162,8 +162,7 @@ def edm_sampler_partial_denoise(
         kappa_i = (1 - t_next / t_hat) ** -1 * (t_hat_next ** 2 - t_next ** 2).sqrt()
         gamma_r = 1 / (kappa_i ** 2)
         gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
-        print(gamma_r)
-        print(1/gamma_r)
+        print(kappa_i)
 
         D_out_plus_kappa_i_noise = fire_runner.run_fire(gamma == 0, x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
         print(f'desired var: {1/(kappa_i ** 2).cpu().numpy()}; actual var: {torch.linalg.norm(D_out_plus_kappa_i_noise - x_0).cpu().numpy() ** 2}')
