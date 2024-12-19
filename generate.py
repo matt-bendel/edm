@@ -317,10 +317,10 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
 
         x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
         x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
-        y = H.H(x_0).view(1, 3, 64, 64)
+        y = H.H(x_0)
 
         plt.imsave('tmp_x0.png', clear_color(x_0[0]))
-        plt.imsave('tmp_y.png', clear_color(y[0]))
+        plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
 
         exit()
 
