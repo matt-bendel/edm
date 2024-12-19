@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 
 from torch_utils import distributed as dist
-from fire_new.fire import FIRE
+from fire.fire_new import FIRE
 from fire.forward_models import get_operator
 
 def clear_color(x):
