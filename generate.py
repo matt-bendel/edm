@@ -59,7 +59,7 @@ def edm_sampler(
     device = latents.device
 
     H = get_operator('inp_box', device)
-    fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
+    fire_runner = FIRE(net, latents * t_steps[0].float(), H, 'eta_scale/ffhq.npy', sigma_min ** 2)
 
     x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
     x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
