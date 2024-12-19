@@ -116,7 +116,7 @@ def edm_sampler_partial_denoise(
     num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
     S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
 ):
-    num_steps = 500
+    num_steps = 100
     # Adjust noise levels based on what's supported by the network.
     sigma_min = max(sigma_min, net.sigma_min)
     sigma_max = min(sigma_max, net.sigma_max)
@@ -149,6 +149,7 @@ def edm_sampler_partial_denoise(
 
         # Increase noise temporarily.
         gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+        gamma_next = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_next <= S_max else 0
         t_hat = net.round_sigma(t_cur + gamma * t_cur)
         if i == 0:
             x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
@@ -156,21 +157,9 @@ def edm_sampler_partial_denoise(
             x_hat = x_cur
 
         # Euler step.
-        # denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
-        # if i < num_steps / 4:
-        #     fire_runner.max_iters = 20
-        # elif i < num_steps / 2:
-        #     fire_runner.max_iters = 10
-        # elif i < num_steps * 3 / 4:
-        #     fire_runner.max_iters = 5
-        # else:
-        #     fire_runner.max_iters = 1
-
-        gamma_r = 1 / ((1 - t_next / t_hat) ** -1 * t_next * ((2 * gamma + gamma ** 2) ** 1/2)) ** 2
+        gamma_r = 1 / ((1 - t_next / t_hat) ** -1 * t_next * ((2 * gamma_next + gamma_next ** 2) ** 1/2)) ** 2
         gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
         D_out_plus_kappa_i_noise = fire_runner.run_fire(i == num_steps - 1, x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
-        # d_cur = (x_hat - denoised) / t_hat
-        # x_next = x_hat + (t_next - t_hat) * d_cur
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * D_out_plus_kappa_i_noise
 
         # Apply 2nd order correction.
