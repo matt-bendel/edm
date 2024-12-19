@@ -85,7 +85,7 @@ def edm_sampler(
         # Euler step.
         # denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
         if i < num_steps / 2:
-            fire_runner.max_iters = num_steps - i + 1
+            fire_runner.max_iters = 10
         else:
             fire_runner.max_iters = 1
 
