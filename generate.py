@@ -65,6 +65,7 @@ def edm_sampler(
         x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
 
         # Euler step.
+        print(t_hat)
         denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
         plt.imsave('edm_tmp.png', clear_color(denoised[0]))
         exit()
