@@ -153,7 +153,7 @@ class FIRE:
 
             self.cg_initialization = mu_1.clone() # CG warm start
 
-        return mu_1_noised
+        return mu_1
 
 
 def extract_and_expand(array, time, target):
