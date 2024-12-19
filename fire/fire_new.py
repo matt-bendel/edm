@@ -120,7 +120,7 @@ class FIRE:
 
         return mu_1_noised, gamma_r
 
-    def run_fire(self, x_t, y, noise_sig, gamma_in, gamma_out):
+    def run_fire(self, idx, x_t, y, noise_sig, gamma_in, gamma_out):
         # 0. Initialize Values
         gamma_w = 1 / (noise_sig ** 2)
         mu_1 = x_t
@@ -144,7 +144,7 @@ class FIRE:
 
         # 2. Linear Estimation
         mu_1 = self.linear_estimation(mu_2 * eta[:, 0, None, None, None], y, gamma_w, eta)
-        plt.imsave('fire_mu_1.png', clear_color(mu_1[0]))
+        plt.imsave(f'fire_mu_1_{idx}.png', clear_color(mu_1[0]))
 
         # 3. Re-Noising
         mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_out, gamma_w)
