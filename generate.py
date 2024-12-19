@@ -151,7 +151,7 @@ def edm_sampler_partial_denoise(
         gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
         gamma_next = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_next <= S_max else 0
         t_hat = net.round_sigma(t_cur + gamma * t_cur)
-        t_hat_next = net.round_sigma(t_next + gamma * t_next)
+        t_hat_next = net.round_sigma(t_next + gamma_next * t_next)
 
         if i == 0:
             x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
