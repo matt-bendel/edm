@@ -147,7 +147,7 @@ class FIRE:
         plt.imsave('fire_mu_1.png', clear_color(mu_1[0]))
 
         # 3. Re-Noising
-        mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_r, gamma_w)
+        mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_out, gamma_w)
 
         self.cg_initialization = mu_1.clone() # CG warm start
 
