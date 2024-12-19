@@ -56,6 +56,8 @@ def edm_sampler(
     t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
     t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])]) # t_N = 0
 
+    device = latents.device
+
     H = get_operator('inp_box', device)
     fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
 
