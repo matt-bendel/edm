@@ -129,6 +129,7 @@ class FIRE:
         mu_1_noised = mu_1.clone()
 
         for i in range(self.max_iters):
+            print(i)
             # 1. Denoising
             mu_2, eta = self.denoising(mu_1_noised, gamma_r)
             mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
