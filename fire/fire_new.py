@@ -144,6 +144,7 @@ class FIRE:
 
         # 2. Linear Estimation
         mu_1 = self.linear_estimation(mu_2 * eta[:, 0, None, None, None], y, gamma_w, eta)
+        plt.imsave('fire_mu_1.png', clear_color(mu_1[0]))
 
         # 3. Re-Noising
         mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_r, gamma_w)
