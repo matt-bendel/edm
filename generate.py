@@ -19,9 +19,11 @@ import PIL.Image
 import dnnlib
 
 import matplotlib.pyplot as plt
+import torchvision.transforms as transforms
 
 from torch_utils import distributed as dist
-
+from fire.fire import FIRE
+from fire.forward_models import get_operator
 
 def clear_color(x):
     if torch.is_complex(x):
@@ -308,6 +310,17 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
         if class_idx is not None:
             class_labels[:, :] = 0
             class_labels[:, class_idx] = 1
+
+        sigma_min = net.sigma_min
+        H = get_operator('inp_box', device)
+        fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
+
+        x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img_00069001.png')
+        x_0 = transforms.ToTensor()(x_0)
+        print(x_0.min())
+        print(x_0.max())
+        plt.imsave('tmp_x0.png', clear_color(x_0[0]))
+        exit()
 
         # Generate images.
         sampler_kwargs = {key: value for key, value in sampler_kwargs.items() if value is not None}
