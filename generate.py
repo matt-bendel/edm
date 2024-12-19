@@ -47,6 +47,7 @@ def edm_sampler(
     num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
     S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
 ):
+    num_steps = 25
     # Adjust noise levels based on what's supported by the network.
     sigma_min = max(sigma_min, net.sigma_min)
     sigma_max = min(sigma_max, net.sigma_max)
@@ -84,8 +85,12 @@ def edm_sampler(
 
         # Euler step.
         # denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
-        if i < num_steps / 2:
+        if i < num_steps / 4:
+            fire_runner.max_iters = 20
+        elif i < num_steps / 2:
             fire_runner.max_iters = 10
+        elif i < num_steps * 3 / 4:
+            fire_runner.max_iters = 5
         else:
             fire_runner.max_iters = 1
 
