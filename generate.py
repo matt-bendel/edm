@@ -87,7 +87,7 @@ def edm_sampler(
         fire_runner.max_iters = num_steps - i + 1
         gamma_r = 1 / ((1 - t_next / t_hat) ** -1 * t_next * (2 * gamma + gamma ** 2) ** 1/2) ** 2
         gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
-        D_out_plus_kappa_noise = fire_runner.run_fire(x_hat.float(), y, 1e-3, 1 / (t_hat.float() ** 2), gamma_r).to(torch.float64)
+        D_out_plus_kappa_noise = fire_runner.run_fire(x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
         # d_cur = (x_hat - denoised) / t_hat
         # x_next = x_hat + (t_next - t_hat) * d_cur
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * D_out_plus_kappa_noise
