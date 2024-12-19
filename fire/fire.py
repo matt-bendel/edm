@@ -36,31 +36,6 @@ class FIRE:
         with open(sqrt_in_var_to_out, 'rb') as f:
             self.sqrt_in_variance_to_out = torch.from_numpy(np.load(f)).to(x_T.device)
 
-    def uncond_denoiser_function(self, noisy_im, noise_var):
-        diff = torch.abs(
-            noise_var[:, 0, None] - (1 - torch.tensor(self.alphas_cumprod).to(noisy_im.device)) / torch.tensor(
-                self.alphas_cumprod).to(noisy_im.device))
-        t = torch.argmin(diff, dim=1)
-
-        ones = torch.ones(noise_var.shape, device=noise_var.device)
-
-        delta = torch.minimum(noise_var / self.v_min, ones)
-        noise_var_clip = torch.maximum(noise_var, ones * self.v_min)
-
-        scaled_noisy_im = noisy_im * torch.sqrt(1 / (1 + noise_var_clip[:, 0, None, None, None]))
-
-        noise_predict = self.model(scaled_noisy_im, t)
-
-        if noise_predict.shape[1] == 2 * noisy_im.shape[1]:
-            noise_predict, _ = torch.split(noise_predict, noisy_im.shape[1], dim=1)
-
-        noise_est = torch.sqrt(noise_var_clip)[:, 0, None, None, None] * noise_predict
-        x_0 = (1 - delta ** self.power)[:, 0, None, None, None] * noisy_im + (delta ** self.power)[:, 0, None, None,
-                                                                             None] * (noisy_im - noise_est)
-
-        return x_0, ((1 - torch.tensor(self.alphas_cumprod).to(noisy_im.device)) / torch.tensor(
-            self.alphas_cumprod).to(noisy_im.device))[t], t
-
     def CG(self, A, scaled_mu_2, y, gamma_w, eta):
         # solve Abar'Abar x = Abar' y
 
@@ -128,7 +103,7 @@ class FIRE:
         gamma_w_hat = gamma_w * torch.ones(mu_1.shape[0], 1).to(mu_1.device)
         gamma_w_hat[gamma_w / eta > self.gam_w_correct] = self.gam_w_correct * eta[gamma_w / eta > self.gam_w_correct]
 
-        max_prec = self.alphas_cumprod[0] / (1 - self.alphas_cumprod[0])
+        max_prec = 1 / self.v_min
         gamma_r = torch.minimum(gamma_r, torch.ones(gamma_r.shape).to(gamma_r.device) * max_prec)
 
         eps_1 = torch.randn_like(mu_1)

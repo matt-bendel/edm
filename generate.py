@@ -56,6 +56,21 @@ def edm_sampler(
     t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
     t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])]) # t_N = 0
 
+    H = get_operator('inp_box', device)
+    fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
+
+    x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
+    x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
+    y = H.H(x_0)
+
+    # plt.imsave('tmp_x0.png', clear_color(x_0[0]))
+    # plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
+
+    fire_out = fire_runner.run_fire(latents, y, 1 / (t_steps[0] ** 2), 1e-3)
+    plt.imsave('tmp_fire_out.png', clear_color(fire_out[0]))
+
+    exit()
+
     # Main sampling loop.
     x_next = latents.to(torch.float64) * t_steps[0]
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
@@ -310,19 +325,6 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
         if class_idx is not None:
             class_labels[:, :] = 0
             class_labels[:, class_idx] = 1
-
-        sigma_min = net.sigma_min
-        H = get_operator('inp_box', device)
-        fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
-
-        x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
-        x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
-        y = H.H(x_0)
-
-        plt.imsave('tmp_x0.png', clear_color(x_0[0]))
-        plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
-
-        exit()
 
         # Generate images.
         sampler_kwargs = {key: value for key, value in sampler_kwargs.items() if value is not None}
