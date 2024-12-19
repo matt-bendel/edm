@@ -120,14 +120,14 @@ class FIRE:
 
         return mu_1_noised, gamma_r
 
-    def run_fire(self, x_t, y, t_alpha_bar, noise_sig, gamma_r):
+    def run_fire(self, x_t, y, noise_sig, gamma_in, gamma_out):
         # 0. Initialize Values
         gamma_w = 1 / (noise_sig ** 2)
         mu_1 = x_t
         mu_1_noised = mu_1.clone()
 
         # 1. Denoising
-        mu_2, eta = self.denoising(mu_1_noised, gamma_r)
+        mu_2, eta = self.denoising(mu_1_noised, gamma_in)
         mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
 
         tr_approx = 0.
