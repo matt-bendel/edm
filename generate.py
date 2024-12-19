@@ -315,7 +315,7 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
         H = get_operator('inp_box', device)
         fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
 
-        x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img_00069001.png')
+        x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
         x_0 = transforms.ToTensor()(x_0)
         print(x_0.min())
         print(x_0.max())
