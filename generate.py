@@ -67,8 +67,9 @@ def edm_sampler(
         # Euler step.
         print(t_hat)
         denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
-        plt.imsave('edm_tmp.png', clear_color(denoised[0]))
-        exit()
+        plt.imsave(f'edm_tmp_{i}.png', clear_color(denoised[0]))
+        if i == 1:
+            exit()
         d_cur = (x_hat - denoised) / t_hat
         x_next = x_hat + (t_next - t_hat) * d_cur
 
