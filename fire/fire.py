@@ -31,7 +31,7 @@ class FIRE:
         self.cg_initialization = torch.zeros_like(x_T)
 
         self.rho = 1.25
-        self.max_iters = 10
+        self.max_iters = 50
 
         with open(sqrt_in_var_to_out, 'rb') as f:
             self.sqrt_in_variance_to_out = torch.from_numpy(np.load(f)).to(x_T.device)
