@@ -120,41 +120,40 @@ class FIRE:
 
         return mu_1_noised, gamma_r
 
-    def run_fire(self, x_t, y, t_alpha_bar, noise_sig):
+    def run_fire(self, return_mu_1, x_t, y, noise_sig, gamma_in, gamma_out):
         # 0. Initialize Values
-        gamma_r = torch.tensor([t_alpha_bar / (1 - t_alpha_bar)]).unsqueeze(0).repeat(x_t.shape[0], 1).to(
-            x_t.device)
         gamma_w = 1 / (noise_sig ** 2)
+        gamma_r = gamma_in
         mu_1 = x_t
         mu_1_noised = mu_1.clone()
 
-        for i in range(self.max_iters):
-            # 1. Denoising
-            mu_2, eta = self.denoising(mu_1_noised, gamma_r)
-            # plt.imsave(f'tmp_fire_mu_2_{i}.png', clear_color(mu_2[0]))
-            mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
+        # for i in range(self.max_iters):
+        # 1. Denoising
+        mu_2, eta = self.denoising(mu_1_noised, gamma_in)
+        mu_2 = mu_2 + torch.randn_like(mu_2) / (eta[:, 0, None, None, None]).sqrt()
 
-            tr_approx = 0.
-            num_samps = 50
-            m = 0
-            for k in range(num_samps):
-                out = self.H.H(torch.randn_like(mu_1))
-                m = out.shape[1]
-                tr_approx += torch.sum(out ** 2, dim=1).unsqueeze(1)
+        tr_approx = 0.
+        num_samps = 50
+        m = 0
+        for k in range(num_samps):
+            out = self.H.H(torch.randn_like(mu_1))
+            m = out.shape[1]
+            tr_approx += torch.sum(out ** 2, dim=1).unsqueeze(1)
 
-            tr_approx = tr_approx / num_samps
-            y_m_A_mu_2 = torch.sum((y - self.H.H(mu_2)) ** 2, dim=1).unsqueeze(1)
-            eta = tr_approx / (y_m_A_mu_2 - m / gamma_w)
+        tr_approx = tr_approx / num_samps
+        y_m_A_mu_2 = torch.sum((y - self.H.H(mu_2)) ** 2, dim=1).unsqueeze(1)
+        eta = tr_approx / (y_m_A_mu_2 - m / gamma_w)
 
-            # 2. Linear Estimation
-            mu_1 = self.linear_estimation(mu_2 * eta[:, 0, None, None, None], y, gamma_w, eta)
+        # 2. Linear Estimation
+        mu_1 = self.linear_estimation(mu_2 * eta[:, 0, None, None, None], y, gamma_w, eta)
+        # plt.imsave(f'fire_mu_1_{idx}.png', clear_color(mu_1[0]))
 
-            # 3. Re-Noising
-            mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_r, gamma_w)
+        # 3. Re-Noising
+        mu_1_noised, gamma_r = self.renoising(mu_1, eta, gamma_out, gamma_w)
 
-            self.cg_initialization = mu_1.clone() # CG warm start
+        self.cg_initialization = mu_1.clone() # CG warm start
 
-        return mu_1
+        return mu_1_noised if not return_mu_1 else mu_1
 
 
 def extract_and_expand(array, time, target):

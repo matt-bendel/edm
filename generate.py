@@ -42,7 +42,7 @@ def normalize_np(img):
 #----------------------------------------------------------------------------
 # Proposed EDM sampler (Algorithm 2).
 
-def edm_sampler(
+def edm_sampler_full_denoise(
     net, latents, class_labels=None, randn_like=torch.randn_like,
     num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
     S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
@@ -112,7 +112,7 @@ def edm_sampler(
     return x_next
 
 def edm_sampler_partial_denoise(
-    net, latents, class_labels=None, randn_like=torch.randn_like,
+    net, latents, class_labels=None, randn_like=torch.randn_like, fname='',
     num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
     S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
 ):
@@ -131,7 +131,7 @@ def edm_sampler_partial_denoise(
     H = get_operator('inp_box', device)
     fire_runner = FIRE(net, latents, H, 'eta_scale/ffhq.npy', sigma_min ** 2)
 
-    x_0 = PIL.Image.open('/storage/FFHQ/ffhq64/ffhq-64x64/00069/img00069001.png')
+    x_0 = PIL.Image.open(fname)
     x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
     y = H.H(x_0)
 
@@ -182,7 +182,7 @@ def edm_sampler_partial_denoise(
         #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
     plt.imsave('edm_fire_out_partial_denoise.png', clear_color(x_next[0]))
-    exit()
+
     return x_next
 
 #----------------------------------------------------------------------------
@@ -404,31 +404,31 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
             continue
 
         # Pick latents and labels.
-        rnd = StackedRandomGenerator(device, batch_seeds)
-        latents = rnd.randn([batch_size, net.img_channels, net.img_resolution, net.img_resolution], device=device)
-        class_labels = None
-        if net.label_dim:
-            class_labels = torch.eye(net.label_dim, device=device)[rnd.randint(net.label_dim, size=[batch_size], device=device)]
-        if class_idx is not None:
-            class_labels[:, :] = 0
-            class_labels[:, class_idx] = 1
+        for i in range(500):
+            fname = f'/storage/FFHQ/ffhq64/ffhq-64x64/00069/img000{69000 + i}.png'
+            rnd = StackedRandomGenerator(device, batch_seeds)
+            latents = rnd.randn([batch_size, net.img_channels, net.img_resolution, net.img_resolution], device=device)
+            class_labels = None
+            if net.label_dim:
+                class_labels = torch.eye(net.label_dim, device=device)[rnd.randint(net.label_dim, size=[batch_size], device=device)]
+            if class_idx is not None:
+                class_labels[:, :] = 0
+                class_labels[:, class_idx] = 1
 
-        # Generate images.
-        sampler_kwargs = {key: value for key, value in sampler_kwargs.items() if value is not None}
-        have_ablation_kwargs = any(x in sampler_kwargs for x in ['solver', 'discretization', 'schedule', 'scaling'])
-        sampler_fn = ablation_sampler if have_ablation_kwargs else edm_sampler_partial_denoise
-        images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, **sampler_kwargs)
+            # Generate images.
+            sampler_kwargs = {key: value for key, value in sampler_kwargs.items() if value is not None}
+            have_ablation_kwargs = any(x in sampler_kwargs for x in ['solver', 'discretization', 'schedule', 'scaling'])
+            sampler_fn = ablation_sampler if have_ablation_kwargs else edm_sampler_partial_denoise
+            images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, fname=fname **sampler_kwargs)
 
-        # Save images.
-        images_np = (images * 127.5 + 128).clip(0, 255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()
-        for seed, image_np in zip(batch_seeds, images_np):
-            image_dir = os.path.join(outdir, f'{seed-seed%1000:06d}') if subdirs else outdir
-            os.makedirs(image_dir, exist_ok=True)
-            image_path = os.path.join(image_dir, f'{seed:06d}.png')
-            if image_np.shape[2] == 1:
-                PIL.Image.fromarray(image_np[:, :, 0], 'L').save(image_path)
-            else:
-                PIL.Image.fromarray(image_np, 'RGB').save(image_path)
+            # Save images.
+            images_np = (images * 127.5 + 128).clip(0, 255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()
+            for image_np in images_np:
+                image_path = f'/storage/matt_models/edm_fire/partial_denoise/sample_{i}.png'
+                if image_np.shape[2] == 1:
+                    PIL.Image.fromarray(image_np[:, :, 0], 'L').save(image_path)
+                else:
+                    PIL.Image.fromarray(image_np, 'RGB').save(image_path)
 
     # Done.
     torch.distributed.barrier()
