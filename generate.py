@@ -17,6 +17,7 @@ import numpy as np
 import torch
 import PIL.Image
 import dnnlib
+import lpips
 
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
@@ -24,6 +25,7 @@ import torchvision.transforms as transforms
 from torch_utils import distributed as dist
 from fire.fire_new import FIRE
 from fire.forward_models import get_operator
+from torchmetrics.functional import peak_signal_noise_ratio
 
 def clear_color(x):
     if torch.is_complex(x):
@@ -116,7 +118,6 @@ def edm_sampler_partial_denoise(
     num_steps=100, sigma_min=0.002, sigma_max=80, rho=7,
     S_churn=0, S_min=0, S_max=float('inf'), S_noise=1,
 ):
-    num_steps = 100
     # Adjust noise levels based on what's supported by the network.
     sigma_min = max(sigma_min, net.sigma_min)
     sigma_max = min(sigma_max, net.sigma_max)
@@ -181,9 +182,7 @@ def edm_sampler_partial_denoise(
         #     d_prime = (x_next - denoised) / t_next
         #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
-    plt.imsave('edm_fire_out_partial_denoise.png', clear_color(x_next[0]))
-
-    return x_next
+    return x_next, x_0
 
 #----------------------------------------------------------------------------
 # Generalized ablation sampler, representing the superset of all sampling
@@ -395,6 +394,11 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
     if dist.get_rank() == 0:
         torch.distributed.barrier()
 
+    loss_fn_vgg = lpips.LPIPS(net='vgg').cuda()
+
+    lpips_vals = []
+    psnr_vals = []
+
     # Loop over batches.
     dist.print0(f'Generating {len(seeds)} images to "{outdir}"...')
     for batch_seeds in tqdm.tqdm(rank_batches, unit='batch', disable=(dist.get_rank() != 0)):
@@ -404,7 +408,7 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
             continue
 
         # Pick latents and labels.
-        for i in range(500):
+        for i in range(100):
             fname = f'/storage/FFHQ/ffhq64/ffhq-64x64/00069/img000{69000 + i}.png'
             rnd = StackedRandomGenerator(device, batch_seeds)
             latents = rnd.randn([batch_size, net.img_channels, net.img_resolution, net.img_resolution], device=device)
@@ -419,16 +423,22 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
             sampler_kwargs = {key: value for key, value in sampler_kwargs.items() if value is not None}
             have_ablation_kwargs = any(x in sampler_kwargs for x in ['solver', 'discretization', 'schedule', 'scaling'])
             sampler_fn = ablation_sampler if have_ablation_kwargs else edm_sampler_partial_denoise
-            images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, fname=fname, **sampler_kwargs)
+            images, x = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, fname=fname, **sampler_kwargs)
 
             # Save images.
             images_np = (images * 127.5 + 128).clip(0, 255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()
             for image_np in images_np:
-                image_path = f'/storage/matt_models/edm_fire/partial_denoise/sample_{i}.png'
+                image_path = f'/storage/matt_models/edm_fire/partial_denoise/{sampler_kwargs["num_steps"]}/sample_{i}.png'
                 if image_np.shape[2] == 1:
                     PIL.Image.fromarray(image_np[:, :, 0], 'L').save(image_path)
                 else:
                     PIL.Image.fromarray(image_np, 'RGB').save(image_path)
+
+            lpips_vals.append(loss_fn_vgg(images, x).mean().detach().cpu().numpy())
+            psnr_vals.append(peak_signal_noise_ratio(images, x).mean().detach().cpu().numpy())
+
+        print(f'Avg. LPIPS: {np.mean(lpips_vals)} +/- {np.std(lpips_vals) / len(lpips_vals)}')
+        print(f'Avg. PSNR: {np.mean(psnr_vals)} +/- {np.std(psnr_vals) / len(psnr_vals)}')
 
     # Done.
     torch.distributed.barrier()
