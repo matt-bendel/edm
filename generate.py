@@ -419,7 +419,7 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
             sampler_kwargs = {key: value for key, value in sampler_kwargs.items() if value is not None}
             have_ablation_kwargs = any(x in sampler_kwargs for x in ['solver', 'discretization', 'schedule', 'scaling'])
             sampler_fn = ablation_sampler if have_ablation_kwargs else edm_sampler_partial_denoise
-            images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, fname=fname **sampler_kwargs)
+            images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, fname=fname, **sampler_kwargs)
 
             # Save images.
             images_np = (images * 127.5 + 128).clip(0, 255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()
