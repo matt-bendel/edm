@@ -178,7 +178,7 @@ def edm_sampler_partial_denoise(
 
         # Renoise
         kappa_sq = (1 + tunable_eta ** 2) * sigma_bar_sq
-        n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq, 1 / kappa_sq.float(), gamma_w)
+        n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq.float(), 1 / kappa_sq.float(), gamma_w)
 
         # EDM update
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * x_swoop
