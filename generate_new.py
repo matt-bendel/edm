@@ -164,12 +164,12 @@ def edm_sampler_partial_denoise(
         num_samps = 50
         m = 0
         for k in range(num_samps):
-            out = self.H.H(torch.randn_like(x_hat))
+            out = fire_runner.H.H(torch.randn_like(x_hat))
             m = out.shape[1]
             tr_approx += torch.sum(out ** 2, dim=1).unsqueeze(1)
 
         tr_approx = tr_approx / num_samps
-        y_m_A_mu_2 = torch.sum((y - self.H.H(x_bar)) ** 2, dim=1).unsqueeze(1)
+        y_m_A_mu_2 = torch.sum((y - fire_runner.H.H(x_bar)) ** 2, dim=1).unsqueeze(1)
         sigma_bar_sq = (y_m_A_mu_2 - m / gamma_w) / tr_approx
 
         # Linear estimation
