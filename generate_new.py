@@ -152,7 +152,7 @@ def edm_sampler_partial_denoise(
     x_hat = x_next
     t_hat = t_steps[0]
 
-    tunable_eta = 0.9
+    tunable_eta = 0.1
 
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
         # Denoise
