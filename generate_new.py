@@ -184,6 +184,7 @@ def edm_sampler_partial_denoise(
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * x_swoop
         x_hat = x_next + (1 - t_next / t_hat) * n
         t_hat = (t_next ** 2 + (1 - t_next / t_hat) ** 2 * kappa_sq[0, 0]).sqrt()
+        t_hat = net.round_sigma(t_hat)
         print(f'desired var: {(t_hat ** 2).cpu().numpy()}; actual var: {torch.mean((x_hat - x_0) ** 2).cpu().numpy()}')
 
 
