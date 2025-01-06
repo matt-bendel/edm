@@ -173,7 +173,7 @@ def edm_sampler_partial_denoise(
         sigma_bar_sq = (y_m_A_mu_2 - m / gamma_w) / tr_approx
 
         # Linear estimation
-        x_swoop = fire_runner.linear_estimation(x_bar / sigma_bar_sq[:, 0, None, None, None], y, gamma_w, 1 / sigma_bar_sq)
+        x_swoop = fire_runner.linear_estimation(x_bar / sigma_bar_sq[:, 0, None, None, None], y, gamma_w.float(), 1 / sigma_bar_sq.float())
         fire_runner.cg_initialization = x_swoop.clone()
 
         # Renoise
