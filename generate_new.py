@@ -137,6 +137,8 @@ def edm_sampler_partial_denoise(
     x_0 = PIL.Image.open(fname)
     x_0 = 2 * transforms.ToTensor()(x_0).unsqueeze(0).to(device) - 1
     y = H.H(x_0)
+    noise_sig = 1e-3
+    gamma_w = 1 / (noise_sig ** 2)
 
     # plt.imsave('tmp_x0.png', clear_color(x_0[0]))
     # plt.imsave('tmp_y.png', clear_color(H.Ht(y).view(1, 3, 64, 64)[0]))
@@ -147,43 +149,79 @@ def edm_sampler_partial_denoise(
 
     # Main sampling loop.
     x_next = latents.to(torch.float64) * t_steps[0]
-    for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
-        x_cur = x_next
+    x_hat = x_next
+    t_hat = t_steps[0]
 
-        # Increase noise temporarily.
-        gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
-        gamma_next = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_next <= S_max else 0
-        t_hat = net.round_sigma(t_cur + gamma * t_cur)
+    tunable_eta = 0.5
 
-        if i == 0:
-            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
-        else:
-            x_hat = x_cur
+    for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
+        # Denoise
+        denoised_im, sigma_tilde_sq_inv = fire_runner.denoising(x_hat, 1 / (t_hat ** 2))
+        sigma_tilde_sq = 1 / sigma_tilde_sq_inv
+        x_bar = denoised_im + torch.randn_like(denoised_im) * sigma_tilde_sq.sqrt()[:, 0, None, None, None]
 
-        t_hat_next = net.round_sigma(t_next + gamma_next * t_next)
+        tr_approx = 0.
+        num_samps = 50
+        m = 0
+        for k in range(num_samps):
+            out = self.H.H(torch.randn_like(x_hat))
+            m = out.shape[1]
+            tr_approx += torch.sum(out ** 2, dim=1).unsqueeze(1)
 
-        # Euler step.
-        kappa_i = (1 - t_next / t_hat) ** -1 * (t_hat_next ** 2 - t_next ** 2).sqrt()
-        gamma_r = 1 / (kappa_i ** 2)
-        gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
-        # print((1 - t_next / t_hat) ** -1)
-        # print((t_hat_next ** 2 - t_next ** 2).sqrt())
-        # print('----')
-        # print(t_cur)
-        # print(t_hat)
-        # print('----')
-        # print(t_next)
-        # print(t_hat_next)
-        # print('----')
-        D_out_plus_kappa_i_noise = fire_runner.run_fire(kappa_i == 0, x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
-        print(f'desired var: {(kappa_i ** 2).cpu().numpy()}; actual var: {torch.mean((D_out_plus_kappa_i_noise - x_0) ** 2).cpu().numpy()}')
-        x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * D_out_plus_kappa_i_noise
+        tr_approx = tr_approx / num_samps
+        y_m_A_mu_2 = torch.sum((y - self.H.H(x_bar)) ** 2, dim=1).unsqueeze(1)
+        sigma_bar_sq = (y_m_A_mu_2 - m / gamma_w) / tr_approx
 
-        # Apply 2nd order correction.
-        # if i < num_steps - 1:
-        #     denoised = net(x_next, t_next, class_labels).to(torch.float64)
-        #     d_prime = (x_next - denoised) / t_next
-        #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
+        # Linear estimation
+        x_swoop = fire_runner.linear_estimation(x_bar / sigma_bar_sq[:, 0, None, None, None], y, gamma_w, 1 / sigma_bar_sq)
+        fire_runner.cg_initialization = x_swoop.clone()
+
+        # Renoise
+        kappa_sq = (1 + tunable_eta ** 2) * sigma_bar_sq
+        n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq, 1 / kappa_sq, gamma_w)
+
+        # EDM update
+        x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * x_swoop
+        x_hat = (t_next / t_hat) * x_hat + (1 - t_next /t_hat) * (x_swoop + n)
+        t_hat = (t_next ** 2 + (1 - t_next / t_hat) * kappa_sq) ** (1 / 2)
+
+    # for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
+    #     x_cur = x_next
+    #
+    #     # Increase noise temporarily.
+    #     gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+    #     gamma_next = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_next <= S_max else 0
+    #     t_hat = net.round_sigma(t_cur + gamma * t_cur)
+    #
+    #     if i == 0:
+    #         x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
+    #     else:
+    #         x_hat = x_cur
+    #
+    #     t_hat_next = net.round_sigma(t_next + gamma_next * t_next)
+    #
+    #     # Euler step.
+    #     kappa_i = (1 - t_next / t_hat) ** -1 * (t_hat_next ** 2 - t_next ** 2).sqrt()
+    #     gamma_r = 1 / (kappa_i ** 2)
+    #     gamma_r = gamma_r.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float()
+    #     # print((1 - t_next / t_hat) ** -1)
+    #     # print((t_hat_next ** 2 - t_next ** 2).sqrt())
+    #     # print('----')
+    #     # print(t_cur)
+    #     # print(t_hat)
+    #     # print('----')
+    #     # print(t_next)
+    #     # print(t_hat_next)
+    #     # print('----')
+    #     D_out_plus_kappa_i_noise = fire_runner.run_fire(kappa_i == 0, x_hat.float(), y, 1e-3, 1 / (t_hat.unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float() ** 2), gamma_r).to(torch.float64)
+    #     print(f'desired var: {(kappa_i ** 2).cpu().numpy()}; actual var: {torch.mean((D_out_plus_kappa_i_noise - x_0) ** 2).cpu().numpy()}')
+    #     x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * D_out_plus_kappa_i_noise
+    #
+    #     # Apply 2nd order correction.
+    #     # if i < num_steps - 1:
+    #     #     denoised = net(x_next, t_next, class_labels).to(torch.float64)
+    #     #     d_prime = (x_next - denoised) / t_next
+    #     #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
     return x_next, x_0
 

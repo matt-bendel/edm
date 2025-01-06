@@ -17,11 +17,12 @@ def normalize_np(img):
 
 
 class FIRE:
-    def __init__(self, model, x_T, H, sqrt_in_var_to_out, v_min):
+    def __init__(self, model, x_T, H, sqrt_in_var_to_out, v_min, eta=0.5):
         self.model = model
         self.power = 0.5
         self.H = H
         self.v_min = v_min
+        self.eta = eta
 
         self.singular_match = H.s_max
 
@@ -119,26 +120,6 @@ class FIRE:
         mu_1_noised = mu_1.clone() + noise_approx
 
         return mu_1_noised, gamma_r
-
-    def renoising_edm(self, mu_1, eta, gamma_r, gamma_w):
-        # eta_np = eta
-        gamma_w_hat = gamma_w * torch.ones(mu_1.shape[0], 1).to(mu_1.device)
-        gamma_w_hat[gamma_w / eta > self.gam_w_correct] = self.gam_w_correct * eta[gamma_w / eta > self.gam_w_correct]
-
-        max_prec = 1 / self.v_min
-        gamma_r = torch.minimum(gamma_r, torch.ones(gamma_r.shape).to(gamma_r.device) * max_prec)
-
-        eps_1 = torch.randn_like(mu_1)
-        transformed_eps_2 = self.H.Ht(torch.randn_like(self.H.H(mu_1))).view(mu_1.shape[0], mu_1.shape[1], mu_1.shape[2], mu_1.shape[3])
-
-        eps_1_scale_squared = torch.max(1 / gamma_r[0, 0] - 1 / (eta), torch.zeros_like(1 / gamma_r[0, 0] - 1 / (eta)))
-        eps_2_scale_squared = (1 / eta - ((gamma_w_hat ** 2) * self.singular_match ** 2 / gamma_w + eta) / ((gamma_w_hat * self.singular_match ** 2 + eta) ** 2)) / (self.singular_match ** 2)
-        eps_2_scale_squared = torch.max(eps_2_scale_squared, torch.zeros_like(eps_2_scale_squared))
-
-        noise_approx = eps_1_scale_squared.sqrt()[:, 0, None, None, None] * eps_1
-        noise_approx = noise_approx + eps_2_scale_squared.sqrt()[:, 0, None, None, None] * transformed_eps_2
-
-        return noise_approx
 
     def run_fire(self, return_mu_1, x_t, y, noise_sig, gamma_in, gamma_out):
         # 0. Initialize Values
