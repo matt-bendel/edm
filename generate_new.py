@@ -184,6 +184,8 @@ def edm_sampler_partial_denoise(
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * x_swoop
         x_hat = x_next + (1 - t_next / t_hat) * n
         t_hat = (t_next ** 2 + (1 - t_next / t_hat) ** 2 * kappa_sq[0, 0]).sqrt()
+        print(f'desired var: {(t_hat ** 2).cpu().numpy()}; actual var: {torch.mean((x_hat - x_0) ** 2).cpu().numpy()}')
+
 
     # for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
     #     x_cur = x_next
