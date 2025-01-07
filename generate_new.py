@@ -184,12 +184,14 @@ def edm_sampler_partial_denoise(
 
         # Renoise
         tunable_eta = ((gamma * t_hat ** 2) / ((t_hat / t_next - 1) ** 2 * sigma_bar_sq) - 1).sqrt()[0, 0]
+        if tunable_eta.isnan().any():
+            tunable_eta = 0
 
         kappa_sq = (1 + tunable_eta ** 2) * sigma_bar_sq
         n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq.float(), 1 / kappa_sq.float(), gamma_w)
         print('---------------------------------')
         print(f'gamma: {gamma}')
-        print(f'eta value: {tunable_eta.cpu().numpy()}')
+        print(f'eta value: {tunable_eta}')
 
         # EDM update
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * x_swoop
