@@ -159,6 +159,8 @@ def edm_sampler_partial_denoise(
     x_i_hat_prec = {'true': [], 'est': []}
 
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
+        gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+
         # Denoise
         denoised_im, sigma_tilde_sq_inv = fire_runner.denoising(x_hat, 1 / (t_hat ** 2).unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float())
         sigma_tilde_sq = 1 / sigma_tilde_sq_inv
@@ -189,6 +191,7 @@ def edm_sampler_partial_denoise(
         x_hat = x_next + (1 - t_next / t_hat) * n
         t_hat = (t_next ** 2 + (1 - t_next / t_hat) ** 2 * kappa_sq[0, 0]).sqrt()
         print('---------------------------------')
+        print(f'gamma: {gamma}')
         print(f'x_swoop_i; desired var: {(kappa_sq[0, 0]).cpu().numpy()}; actual var: {torch.mean((x_swoop + n - x_0) ** 2).cpu().numpy()}')
         print(f'x_(i+1); desired var: {(t_next ** 2).cpu().numpy()}; actual var: {torch.mean((x_next - x_0) ** 2).cpu().numpy()}')
         print(f'x_hat_(i+1); desired var: {(t_hat ** 2).cpu().numpy()}; actual var: {torch.mean((x_hat - x_0) ** 2).cpu().numpy()}')
@@ -221,7 +224,7 @@ def edm_sampler_partial_denoise(
 
     plt.savefig('true_v_predicted_errors.png')
     plt.close()
-    # exit()
+    exit()
 
 
 
