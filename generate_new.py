@@ -183,9 +183,11 @@ def edm_sampler_partial_denoise(
         fire_runner.cg_initialization = x_swoop.clone()
 
         # Renoise
-        tunable_eta = ((gamma * t_hat ** 2) / ((t_hat / t_next - 1) ** 2 * sigma_bar_sq) - 1).sqrt()[0, 0]
-        if tunable_eta.isnan().any():
+        tunable_eta_sq = ((gamma * t_hat ** 2) / ((t_hat / t_next - 1) ** 2 * sigma_bar_sq) - 1)[0, 0]
+        if tunable_eta_sq < 0:
             tunable_eta = 0
+        else:
+            tunable_eta = tunable_eta_sq.sqrt()
 
         kappa_sq = (1 + tunable_eta ** 2) * sigma_bar_sq
         n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq.float(), 1 / kappa_sq.float(), gamma_w)
