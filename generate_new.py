@@ -224,9 +224,6 @@ def edm_sampler_partial_denoise(
 
     plt.savefig('true_v_predicted_errors.png')
     plt.close()
-    exit()
-
-
 
     # for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
     #     x_cur = x_next
