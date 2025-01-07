@@ -203,14 +203,14 @@ def edm_sampler_partial_denoise(
 
     plt.figure()
     x_axis = np.arange(num_steps)
-    plt.plot(x_axis, x_swoop_prec['true'], 'k--')
-    plt.plot(x_axis, x_swoop_prec['est'], 'k')
+    plt.semilogy(x_axis, x_swoop_prec['true'], 'k--')
+    plt.semilogy(x_axis, x_swoop_prec['est'], 'k')
 
-    plt.plot(x_axis, x_i_prec['true'], 'b--')
-    plt.plot(x_axis, x_i_prec['est'], 'b')
+    plt.semilogy(x_axis, x_i_prec['true'], 'b--')
+    plt.semilogy(x_axis, x_i_prec['est'], 'b')
 
-    plt.plot(x_axis, x_i_hat_prec['true'], 'g--')
-    plt.plot(x_axis, x_i_hat_prec['est'], 'g')
+    plt.semilogy(x_axis, x_i_hat_prec['true'], 'g--')
+    plt.semilogy(x_axis, x_i_hat_prec['est'], 'g')
 
     plt.xlabel('EDM step')
     plt.ylabel('Error variance')
