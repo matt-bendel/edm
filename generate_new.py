@@ -206,16 +206,17 @@ def edm_sampler_partial_denoise(
     plt.semilogy(x_axis, x_swoop_prec['true'], 'k--')
     plt.semilogy(x_axis, x_swoop_prec['est'], 'k')
 
-    plt.semilogy(x_axis, x_i_prec['true'], 'b--')
-    plt.semilogy(x_axis, x_i_prec['est'], 'b')
+    # plt.semilogy(x_axis, x_i_prec['true'], 'b--')
+    # plt.semilogy(x_axis, x_i_prec['est'], 'b')
 
     plt.semilogy(x_axis, x_i_hat_prec['true'], 'g--')
     plt.semilogy(x_axis, x_i_hat_prec['est'], 'g')
 
     plt.xlabel('EDM step')
     plt.ylabel('Error variance')
+    plt.grid()
 
-    legend = ['$\kappa_i^2$', 'Est. $\kappa_i^2$', '$\sigma_{i+1}^2$', 'Est. $\sigma_{i+1}^2$', '$\hat{\sigma}_{i+1}^2$', 'Est. $\hat{\sigma}_{i+1}^2$']
+    legend = ['$\kappa_i^2$', 'Est. $\kappa_i^2$', '$\hat{\sigma}_{i+1}^2$', 'Est. $\hat{\sigma}_{i+1}^2$']
     plt.legend(legend)
 
     plt.savefig('true_v_predicted_errors.png')
