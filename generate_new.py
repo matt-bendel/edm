@@ -159,7 +159,7 @@ def edm_sampler_partial_denoise(
     x_i_hat_prec = {'true': [], 'est': []}
 
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
-        gamma = 0.4 if S_min <= t_next <= S_max else 0
+        gamma = 0.35 if S_min <= t_next <= S_max else 0
 
         # Denoise
         denoised_im, sigma_tilde_sq_inv = fire_runner.denoising(x_hat, 1 / (t_hat ** 2).unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float())
