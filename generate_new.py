@@ -156,7 +156,7 @@ def edm_sampler_partial_denoise(
     x_i_prec = {'true': [], 'est': []}
     x_i_hat_prec = {'true': [], 'est': []}
 
-    tunable_eta = 4
+    tunable_eta = 0.5
 
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
         # gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
