@@ -154,6 +154,10 @@ def edm_sampler_partial_denoise(
 
     tunable_eta = 0.5
 
+    x_swoop_prec = {'true': [], 'est': []}
+    x_i_prec = {'true': [], 'est': []}
+    x_i_hat_prec = {'true': [], 'est': []}
+
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
         # Denoise
         denoised_im, sigma_tilde_sq_inv = fire_runner.denoising(x_hat, 1 / (t_hat ** 2).unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float())
@@ -189,6 +193,35 @@ def edm_sampler_partial_denoise(
         print(f'x_(i+1); desired var: {(t_next ** 2).cpu().numpy()}; actual var: {torch.mean((x_next - x_0) ** 2).cpu().numpy()}')
         print(f'x_hat_(i+1); desired var: {(t_hat ** 2).cpu().numpy()}; actual var: {torch.mean((x_hat - x_0) ** 2).cpu().numpy()}')
         print('---------------------------------')
+
+        x_swoop_prec['true'].append(kappa_sq[0, 0].cpu().numpy())
+        x_swoop_prec['est'].append(torch.mean((x_swoop + n - x_0) ** 2).cpu().numpy())
+        x_i_prec['true'].append((t_next ** 2).cpu().numpy())
+        x_i_prec['est'].append(torch.mean((x_next - x_0) ** 2).cpu().numpy())
+        x_i_hat_prec['true'].append((t_hat ** 2).cpu().numpy())
+        x_i_hat_prec['est'].append(torch.mean((x_hat - x_0) ** 2).cpu().numpy())
+
+    plt.figure()
+    x_axis = np.arange(num_steps)
+    plt.plot(x_axis, x_swoop_prec['true'], 'k--')
+    plt.plot(x_axis, x_swoop_prec['est'], 'k')
+
+    plt.plot(x_axis, x_i_prec['true'], 'b--')
+    plt.plot(x_axis, x_i_prec['est'], 'b')
+
+    plt.plot(x_axis, x_i_hat_prec['true'], 'g--')
+    plt.plot(x_axis, x_i_hat_prec['est'], 'g')
+
+    plt.xlabel('EDM step')
+    plt.ylabel('Error variance')
+
+    legend = ['$\kappa_i^2$', 'Est. $\kappa_i^2$', '$\sigma_{i+1}^2$', 'Est. $\sigma_{i+1}^2$', '$\hat{\sigma}_{i+1}^2$', 'Est. $\hat{\sigma}_{i+1}^2$']
+    plt.legend(legend)
+
+    plt.savefig('true_v_predicted_errors.png')
+    plt.close()
+    exit()
+
 
 
     # for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
