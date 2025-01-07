@@ -185,13 +185,14 @@ def edm_sampler_partial_denoise(
         # Renoise
         kappa_sq = (1 + tunable_eta ** 2) * sigma_bar_sq
         n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq.float(), 1 / kappa_sq.float(), gamma_w)
+        print('---------------------------------')
+        print(f'gamma: {gamma}')
+        print(f'computed gamma: {(t_hat / t_next - 1) ** 2 * kappa_sq / (t_hat ** 2)}')
 
         # EDM update
         x_next = (t_next / t_hat) * x_hat + (1 - t_next / t_hat) * x_swoop
         x_hat = x_next + (1 - t_next / t_hat) * n
         t_hat = (t_next ** 2 + (1 - t_next / t_hat) ** 2 * kappa_sq[0, 0]).sqrt()
-        print('---------------------------------')
-        print(f'gamma: {gamma}')
         print(f'x_swoop_i; desired var: {(kappa_sq[0, 0]).cpu().numpy()}; actual var: {torch.mean((x_swoop + n - x_0) ** 2).cpu().numpy()}')
         print(f'x_(i+1); desired var: {(t_next ** 2).cpu().numpy()}; actual var: {torch.mean((x_next - x_0) ** 2).cpu().numpy()}')
         print(f'x_hat_(i+1); desired var: {(t_hat ** 2).cpu().numpy()}; actual var: {torch.mean((x_hat - x_0) ** 2).cpu().numpy()}')
