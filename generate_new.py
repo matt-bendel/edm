@@ -152,7 +152,7 @@ def edm_sampler_partial_denoise(
     x_hat = x_next
     t_hat = t_steps[0]
 
-    tunable_eta = 6
+    tunable_eta = 3
 
     x_swoop_prec = {'true': [], 'est': []}
     x_i_prec = {'true': [], 'est': []}
