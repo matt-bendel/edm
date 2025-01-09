@@ -155,11 +155,13 @@ def edm_sampler_partial_denoise(
     x_swoop_prec = {'true': [], 'est': []}
     x_i_prec = {'true': [], 'est': []}
     x_i_hat_prec = {'true': [], 'est': []}
+    etas = []
 
-    tunable_eta = 100
+    # tunable_eta = 100
+    gamma = 0.5
 
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
-        # gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+        gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
 
         # Denoise
         denoised_im, sigma_tilde_sq_inv = fire_runner.denoising(x_hat, 1 / (t_hat ** 2).unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float())
@@ -183,11 +185,14 @@ def edm_sampler_partial_denoise(
         fire_runner.cg_initialization = x_swoop.clone()
 
         # Renoise
-        # tunable_eta = ((gamma * t_hat ** 2) / ((t_hat / t_next - 1) ** 2 * sigma_bar_sq) - 1).sqrt()[0, 0]
-        # if tunable_eta.isnan().any():
-        #     tunable_eta = 0
+        tunable_eta_sq = ((gamma ** 2 + 2 * gamma) / ((1 / t_next - 1 / t_hat) ** 2 * sigma_bar_sq) - 1)[0, 0]
+        if tunable_eta_sq < 0:
+            tunable_eta_sq = 0
+            etas.append(tunable_eta_sq)
+        else:
+            etas.append(tunable_eta_sq.cpu().numpy())
 
-        kappa_sq = (1 + tunable_eta ** 2) * sigma_bar_sq
+        kappa_sq = (1 + tunable_eta_sq) * sigma_bar_sq
         n = fire_runner.renoising_edm(x_swoop, 1 / sigma_bar_sq.float(), 1 / kappa_sq.float(), gamma_w)
         print('---------------------------------')
         print(f'eta value: {tunable_eta}')
