@@ -163,6 +163,7 @@ class FIRE:
             tr_approx = tr_approx / num_samps
             y_m_A_mu_2 = torch.sum((y - self.H.H(mu_2)) ** 2, dim=1).unsqueeze(1)
             eta = tr_approx / (y_m_A_mu_2 - m / gamma_w)
+            eta = eta.float()
 
             # 2. Linear Estimation
             mu_1 = self.linear_estimation(mu_2 * eta[:, 0, None, None, None], y, gamma_w, eta)
