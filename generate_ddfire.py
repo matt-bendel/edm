@@ -165,17 +165,17 @@ def edm_sampler_partial_denoise(
     K = num_steps
 
     ddpm_prec = 1 / (t_steps ** 2)
-    print(ddpm_prec)
-    exit()
+    ddpm_prec[-1] = 1e8
 
     one_iter_num = int(np.round(K * one_iter_frac))
     new_gamma_tgt = -1
     new_diff = []
     for i in range(K):
+        idx = K - 1 - i
         if i >= one_iter_num:
             if new_gamma_tgt == -1:
-                log_gam_tgt = np.log10(ddpm_prec[i])
-                new_gamma_tgt = ddpm_prec[i]
+                log_gam_tgt = np.log10(ddpm_prec[idx])
+                new_gamma_tgt = ddpm_prec[idx]
 
             new_diff.append(np.log10(new_gamma_tgt) - np.log10(ddpm_prec[i]))
 
@@ -202,11 +202,14 @@ def edm_sampler_partial_denoise(
             NFE_max = NFE_mid
         else:  # NFE_mid==NFE_tgt
             rho = 10 ** log_rho_mid
-            self.rho = rho
             break
 
     iters_ire_ = np.round(np.maximum((log_gam_tgt - log_gam_ddim_) / log_rho_mid, 0) + 1).astype(int)
-    self.fire_iter_schedule = iters_ire_.tolist()
+    fire_iter_schedule = iters_ire_.tolist()
+
+    print(fire_iter_schedule)
+    print(rho)
+    exit()
 
     fire_iters = []
 
