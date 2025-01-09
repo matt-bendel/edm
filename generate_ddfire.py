@@ -207,7 +207,7 @@ def edm_sampler_partial_denoise(
     iters_ire_ = np.round(np.maximum((log_gam_tgt - log_gam_ddim_) / log_rho_mid, 0) + 1).astype(int)
     fire_iters = iters_ire_.tolist()
 
-    print(fire_iter_schedule)
+    print(fire_iters)
 
     fire_runner.rho = rho
 
