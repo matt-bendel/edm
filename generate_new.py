@@ -111,8 +111,6 @@ def edm_sampler_full_denoise(
         #     d_prime = (x_next - denoised) / t_next
         #     x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
-    plt.imsave('edm_fire_out.png', clear_color(x_next[0]))
-    exit()
     return x_next
 
 def edm_sampler_partial_denoise(
@@ -526,7 +524,6 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
 
             lpips_vals.append(loss_fn_vgg(images.float(), x.float()).mean().detach().cpu().numpy())
             psnr_vals.append(peak_signal_noise_ratio(images.float(), x.float()).mean().detach().cpu().numpy())
-            exit()
 
         print(f'Avg. LPIPS: {np.mean(lpips_vals)} +/- {np.std(lpips_vals) / len(lpips_vals)}')
         print(f'Avg. PSNR: {np.mean(psnr_vals)} +/- {np.std(psnr_vals) / len(psnr_vals)}')
