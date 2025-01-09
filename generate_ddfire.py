@@ -164,7 +164,7 @@ def edm_sampler_partial_denoise(
     delta_1 = 0.2
     K = num_steps
 
-    ddpm_prec = 1 / (t_steps ** 2)
+    ddpm_prec = 1 / (t_steps ** 2).cpu().numpy()
     ddpm_prec[-1] = 1e8
 
     one_iter_num = int(np.round(K * delta_1))
