@@ -205,17 +205,11 @@ def edm_sampler_partial_denoise(
             break
 
     iters_ire_ = np.round(np.maximum((log_gam_tgt - log_gam_ddim_) / log_rho_mid, 0) + 1).astype(int)
-    fire_iter_schedule = iters_ire_.tolist()
+    fire_iters = iters_ire_.tolist()
 
     print(fire_iter_schedule)
-    print(rho)
-    exit()
 
-    fire_iters = []
-
-    c_i = []
-    g_i = []
-    s_i = []
+    fire_runner.rho = rho
 
     for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
         x_hat = x_next
@@ -225,7 +219,7 @@ def edm_sampler_partial_denoise(
         x_swoop = fire_runner.run_fire(x_hat, y, noise_sig, 1 / (sig_hat ** 2))
 
         # EDM update
-        x_next = c_i[i] * x_next + g_i[i] * x_swoop + s_i[i] * torch.randn_like(x_next)
+        x_next = x_swoop + t_next * torch.randn_like(x_next)
 
     return x_next, x_0
 
