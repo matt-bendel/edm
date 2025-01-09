@@ -475,7 +475,6 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
 
             lpips_vals.append(loss_fn_vgg(images.float(), x.float()).mean().detach().cpu().numpy())
             psnr_vals.append(peak_signal_noise_ratio(images.float(), x.float()).mean().detach().cpu().numpy())
-            exit()
 
         print(f'Avg. LPIPS: {np.mean(lpips_vals)} +/- {np.std(lpips_vals) / len(lpips_vals)}')
         print(f'Avg. PSNR: {np.mean(psnr_vals)} +/- {np.std(psnr_vals) / len(psnr_vals)}')
