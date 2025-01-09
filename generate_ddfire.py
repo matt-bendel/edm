@@ -216,7 +216,7 @@ def edm_sampler_partial_denoise(
         sig_hat = t_cur
 
         fire_runner.max_iters = fire_iters[i]
-        x_swoop = fire_runner.run_fire(x_hat, y, noise_sig, 1 / (sig_hat ** 2))
+        x_swoop = fire_runner.run_fire(x_hat, y, noise_sig, 1 / (sig_hat ** 2).unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1))
 
         # EDM update
         x_next = x_swoop + t_next * torch.randn_like(x_next)
