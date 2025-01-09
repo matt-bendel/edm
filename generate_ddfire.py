@@ -467,7 +467,7 @@ def main(network_pkl, outdir, subdirs, seeds, class_idx, max_batch_size, device=
             # Save images.
             images_np = (images * 127.5 + 128).clip(0, 255).to(torch.uint8).permute(0, 2, 3, 1).cpu().numpy()
             for image_np in images_np:
-                image_path = f'/storage/matt_models/edm_fire/full_denoise/{sampler_kwargs["num_steps"]}/sample_{i}.png'
+                image_path = f'/storage/matt_models/edm_fire/full_denoise/1000/sample_{i}.png'
                 if image_np.shape[2] == 1:
                     PIL.Image.fromarray(image_np[:, :, 0], 'L').save(image_path)
                 else:
