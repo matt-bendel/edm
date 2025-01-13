@@ -162,7 +162,7 @@ def edm_sampler_partial_denoise(
         # Denoise
         denoised_im, sigma_tilde_sq_inv = fire_runner.denoising(x_hat, 1 / (t_hat ** 2).unsqueeze(0).unsqueeze(0).repeat(x_hat.shape[0], 1).float())
         sigma_tilde_sq = 1 / sigma_tilde_sq_inv
-        x_bar = denoised_im + torch.randn_like(denoised_im) * sigma_tilde_sq.sqrt()[:, 0, None, None, None]
+        # x_bar = denoised_im + torch.randn_like(denoised_im) * sigma_tilde_sq.sqrt()[:, 0, None, None, None]
 
         tr_approx = 0.
         num_samps = 50
